@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<!-- saved from url=(0048)file:///C:/Users/olivier/Downloads/aac-km_2.html -->
+<html lang="fr"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1115">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Carnet%20AAC%22%2C%22short_name%22%3A%22AAC%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230f1115%22%2C%22theme_color%22%3A%22%230f1115%22%2C%22orientation%22%3A%22portrait%22%7D">
+<title>Carnet AAC — conduite accompagnée</title>
+<style>
+:root{
+  --bg:#0f1115; --card:#171a21; --card2:#1e222b; --line:#2a2f3a;
+  --txt:#e8ecf3; --dim:#98a2b3; --accent:#3ddc84; --accent2:#4da3ff;
+  --warn:#ffb020; --dangr:#ff5c5c; --radius:14px;
+  --safe-b:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--txt);
+  font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+body{padding-bottom:calc(66px + var(--safe-b))}
+button,input,select,textarea{font:inherit;color:inherit}
+h1,h2,h3{margin:0}
+.hide{display:none !important}
+
+/* ---------- top bar ---------- */
+#topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;
+  padding:12px 16px;background:rgba(15,17,21,.92);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line)}
+#topbar .brand{font-weight:650;letter-spacing:.2px}
+#topbar .brand small{color:var(--dim);font-weight:400}
+#syncDot{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim)}
+#syncDot i{width:9px;height:9px;border-radius:50%;background:#555;display:block}
+#syncDot.ok i{background:var(--accent);box-shadow:0 0 8px rgba(61,220,132,.7)}
+#syncDot.pending i{background:var(--warn)}
+#syncDot.err i{background:var(--dangr)}
+
+/* ---------- layout ---------- */
+main{padding:14px 14px 24px;max-width:720px;margin:0 auto}
+.view{display:none}.view.on{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin-bottom:12px}
+.card h3{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin-bottom:10px;font-weight:600}
+.row{display:flex;gap:10px}
+.row>*{flex:1}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+@media(max-width:420px){.grid4{grid-template-columns:repeat(2,1fr)}}
+
+/* ---------- gauge ---------- */
+.goal .big{display:flex;align-items:baseline;gap:8px;margin-bottom:8px}
+.goal .big b{font-size:34px;font-weight:700;letter-spacing:-.5px}
+.goal .big span{color:var(--dim);font-size:14px}
+.bar{height:12px;border-radius:99px;background:var(--card2);overflow:hidden;border:1px solid var(--line)}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent));border-radius:99px;transition:width .5s}
+.goal .sub{display:flex;justify-content:space-between;margin-top:8px;font-size:12.5px;color:var(--dim)}
+
+/* ---------- drive ---------- */
+.bigbtn{width:100%;border:0;border-radius:var(--radius);padding:22px 16px;font-size:20px;font-weight:700;
+  background:var(--accent);color:#06210f;cursor:pointer;transition:transform .1s}
+.bigbtn:active{transform:scale(.985)}
+.bigbtn.stop{background:var(--dangr);color:#fff}
+.bigbtn.ghost{background:var(--card2);color:var(--txt);border:1px solid var(--line);font-size:15px;padding:14px;font-weight:600}
+.live{text-align:center;padding:6px 0 4px}
+.live .km{font-size:60px;font-weight:800;letter-spacing:-2px;line-height:1}
+.live .km small{font-size:20px;font-weight:600;color:var(--dim);letter-spacing:0}
+.live .meta{display:flex;justify-content:center;gap:18px;color:var(--dim);font-size:13px;margin-top:10px}
+.live .meta b{color:var(--txt);font-weight:600}
+.gpsq{margin-top:10px;font-size:12px;color:var(--dim);text-align:center}
+.gpsq b{color:var(--accent)}
+.gpsq.bad b{color:var(--warn)}
+.notice{background:rgba(255,176,32,.08);border:1px solid rgba(255,176,32,.35);color:#ffd88a;
+  border-radius:10px;padding:10px 12px;font-size:12.5px;margin-top:10px}
+
+/* ---------- stats tiles ---------- */
+.tile{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.tile .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--dim)}
+.tile .val{font-size:22px;font-weight:700;margin-top:2px;letter-spacing:-.5px}
+.tile .val small{font-size:12px;color:var(--dim);font-weight:500}
+
+/* ---------- list ---------- */
+.daygroup{margin-bottom:6px}
+.dayhead{display:flex;justify-content:space-between;align-items:baseline;padding:12px 4px 6px;
+  font-size:12.5px;color:var(--dim)}
+.dayhead span{text-transform:capitalize}
+.dayhead b{color:var(--accent);font-variant-numeric:tabular-nums}
+.trip{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);
+  border-radius:12px;padding:11px 12px;margin-bottom:8px;cursor:pointer}
+.trip:active{background:var(--card2)}
+.trip .d{width:78px;text-align:right;font-size:19px;font-weight:700;font-variant-numeric:tabular-nums}
+.trip .d small{font-size:11px;color:var(--dim);font-weight:600}
+.trip .i{flex:1;min-width:0}
+.trip .i .t{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.trip .i .s{font-size:12px;color:var(--dim);margin-top:2px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.tag{font-size:10.5px;padding:2px 7px;border-radius:99px;background:var(--card2);border:1px solid var(--line);color:var(--dim)}
+.tag.n{background:rgba(77,163,255,.12);border-color:rgba(77,163,255,.35);color:#a9d0ff}
+.tag.a{background:rgba(255,92,92,.10);border-color:rgba(255,92,92,.3);color:#ffb3b3}
+.empty{text-align:center;color:var(--dim);padding:40px 10px;font-size:14px}
+
+/* ---------- chart ---------- */
+.seg{display:flex;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:3px;gap:3px}
+.seg button{flex:1;border:0;background:transparent;color:var(--dim);padding:7px 4px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer}
+.seg button.on{background:var(--accent);color:#06210f}
+canvas{width:100%;height:190px;display:block;margin-top:12px}
+.breakdown{margin-top:6px}
+.brow{display:flex;align-items:center;gap:10px;margin-top:9px;font-size:13px}
+.brow .bl{width:82px;color:var(--dim);font-size:12.5px}
+.brow .bb{flex:1;height:9px;border-radius:99px;background:var(--card2);overflow:hidden}
+.brow .bb i{display:block;height:100%;background:var(--accent2);border-radius:99px}
+.brow .bv{width:74px;text-align:right;font-variant-numeric:tabular-nums;color:var(--dim);font-size:12.5px}
+
+/* ---------- table ---------- */
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{padding:8px 6px;text-align:left;border-bottom:1px solid var(--line)}
+th{color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+
+/* ---------- form ---------- */
+label{display:block;font-size:12px;color:var(--dim);margin:0 0 5px;font-weight:600}
+input,select,textarea{width:100%;background:var(--card2);border:1px solid var(--line);border-radius:10px;
+  padding:11px 12px;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--accent2)}
+.field{margin-bottom:11px}
+.check{display:flex;align-items:center;gap:10px;background:var(--card2);border:1px solid var(--line);
+  border-radius:10px;padding:11px 12px;margin-bottom:11px}
+.check input{width:20px;height:20px;flex:0 0 auto;accent-color:var(--accent)}
+.check label{margin:0;color:var(--txt);font-size:14px;font-weight:500}
+.btn{border:1px solid var(--line);background:var(--card2);border-radius:10px;padding:11px 14px;
+  font-weight:600;cursor:pointer;width:100%}
+.btn.primary{background:var(--accent);color:#06210f;border-color:transparent}
+.btn.danger{background:transparent;color:var(--dangr);border-color:rgba(255,92,92,.4)}
+.hint{font-size:12px;color:var(--dim);margin-top:-4px;margin-bottom:11px}
+
+/* ---------- dialog ---------- */
+dialog{border:0;padding:0;background:transparent;max-width:520px;width:100%}
+dialog::backdrop{background:rgba(0,0,0,.6);backdrop-filter:blur(3px)}
+.sheet{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;
+  max-height:88vh;overflow:auto;margin:auto}
+.sheet h2{font-size:17px;margin-bottom:14px}
+.sheet .actions{display:flex;gap:10px;margin-top:6px}
+.sheet .actions .btn{width:auto;flex:1}
+
+/* ---------- tabbar ---------- */
+#tabbar{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;
+  background:rgba(23,26,33,.96);backdrop-filter:blur(10px);border-top:1px solid var(--line);
+  padding-bottom:var(--safe-b)}
+#tabbar button{flex:1;background:none;border:0;padding:9px 2px 10px;color:var(--dim);
+  font-size:10.5px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px}
+#tabbar button.on{color:var(--accent)}
+#tabbar svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(86px + var(--safe-b));z-index:60;
+  background:#000;border:1px solid var(--line);color:#fff;padding:10px 16px;border-radius:99px;font-size:13px;
+  opacity:0;pointer-events:none;transition:opacity .25s}
+#toast.on{opacity:.95}
+</style>
+</head>
+<body>
+
+<header id="topbar">
+  <div class="brand">Carnet AAC <small id="whoLbl"></small></div>
+  <div id="syncDot" class=""><i></i><span id="syncTxt">local</span></div>
+</header>
+
+<main>
+
+<!-- ============ ROULER ============ -->
+<section id="view-drive" class="view">
+  <div class="card goal">
+    <div class="big"><b id="gTotal">0</b><span>/ <span id="gGoal">3 000</span> km</span></div>
+    <div class="bar"><i id="gBar" style="width:0%"></i></div>
+    <div class="sub"><span id="gLeft">reste 3 000 km</span><span id="gDate">date de début non réglée</span></div>
+  </div>
+
+  <div class="card hide" id="idleBox">
+    <button class="bigbtn" id="btnStart">▶︎  Démarrer le trajet</button>
+    <div style="height:10px"></div>
+    <button class="bigbtn ghost" id="btnManual">＋  Ajouter un trajet à la main</button>
+    <div class="gpsq" id="gpsIdle">La localisation sera demandée au démarrage du trajet</div>
+  </div>
+
+  <div class="card" id="liveBox">
+    <div class="live">
+      <div class="km"><span id="lvKm">0.00</span><small> km</small></div>
+      <div class="meta">
+        <span>⏱ <b id="lvTime">05:34</b></span>
+        <span>➜ <b id="lvSpeed">0</b> km/h</span>
+        <span>Ø <b id="lvAvg">0</b> km/h</span>
+      </div>
+    </div>
+    <div class="gpsq" id="gpsLive"><b style="color:var(--dangr)">Autorisation GPS refusée</b></div>
+    <div style="height:14px"></div>
+    <div class="row">
+      <button class="bigbtn ghost" id="btnPause">⏸ Pause</button>
+      <button class="bigbtn stop" id="btnStop">■ Terminer</button>
+    </div>
+    <div class="notice">Garde l'écran allumé et l'appli au premier plan : les navigateurs coupent le GPS
+      quand le téléphone se verrouille. L'écran est maintenu allumé automatiquement si le téléphone le permet.</div>
+  </div>
+
+  <div class="card">
+    <h3>Compteurs</h3>
+    <div class="grid4">
+      <div class="tile"><div class="lbl">Aujourd'hui</div><div class="val" id="tToday">0,0<small> km</small></div></div>
+      <div class="tile"><div class="lbl">Semaine</div><div class="val" id="tWeek">0,0<small> km</small></div></div>
+      <div class="tile"><div class="lbl">Mois</div><div class="val" id="tMonth">0,0<small> km</small></div></div>
+      <div class="tile"><div class="lbl">Trajets</div><div class="val" id="tCount">0</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TRAJETS ============ -->
+<section id="view-trips" class="view on">
+  <div class="card">
+    <div class="row">
+      <div>
+        <label for="fPeriod">Période</label>
+        <select id="fPeriod">
+          <option value="all">Tout</option>
+          <option value="month">Ce mois</option>
+          <option value="week">Cette semaine</option>
+          <option value="30">30 derniers jours</option>
+          <option value="year">Cette année</option>
+        </select>
+      </div>
+      <div>
+        <label for="fRoad">Type de route</label>
+        <select id="fRoad">
+          <option value="">Tous</option>
+          <option value="ville">Ville</option>
+          <option value="route">Route</option>
+          <option value="autoroute">Autoroute</option>
+          <option value="mixte">Mixte</option>
+        </select>
+      </div>
+    </div>
+    <div class="sub" style="display:flex;justify-content:space-between;margin-top:10px;font-size:12.5px;color:var(--dim)">
+      <span id="fCount">0 trajet</span><span id="fSum">0,0 km</span>
+    </div>
+  </div>
+  <div id="tripList"><div class="empty">Aucun trajet sur cette période.<br>Appuie sur « Démarrer le trajet » pour commencer.</div></div>
+</section>
+
+<!-- ============ STATS ============ -->
+<section id="view-stats" class="view">
+  <div class="card">
+    <h3>Cumuls</h3>
+    <div class="grid4">
+      <div class="tile"><div class="lbl">Total</div><div class="val" id="sTotal">0,0<small> km</small></div></div>
+      <div class="tile"><div class="lbl">Trajets</div><div class="val" id="sTrips">0</div></div>
+      <div class="tile"><div class="lbl">Moy./trajet</div><div class="val" id="sAvg">0<small> km</small></div></div>
+      <div class="tile"><div class="lbl">Temps total</div><div class="val" id="sTime">0<small> h</small></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Évolution</h3>
+    <div class="seg" id="segChart">
+      <button data-g="day" class="on">Jours</button>
+      <button data-g="week">Semaines</button>
+      <button data-g="month">Mois</button>
+    </div>
+    <canvas id="chart" width="662" height="190"></canvas>
+  </div>
+
+  <div class="card">
+    <h3>Répartition</h3>
+    <div class="breakdown" id="breakdown"><div class="brow"><span class="bl">Ville</span><span class="bb"><i style="width:0.0%"></i></span><span class="bv">0 km · 0%</span></div><div class="brow"><span class="bl">Route</span><span class="bb"><i style="width:0.0%"></i></span><span class="bv">0 km · 0%</span></div><div class="brow"><span class="bl">Autoroute</span><span class="bb"><i style="width:0.0%"></i></span><span class="bv">0 km · 0%</span></div><div class="brow"><span class="bl">Mixte</span><span class="bb"><i style="width:0.0%"></i></span><span class="bv">0 km · 0%</span></div><div class="brow"><span class="bl">De nuit</span><span class="bb"><i style="width:0.0%"></i></span><span class="bv">0 km · 0%</span></div><div class="brow"><span class="bl">Intempéries</span><span class="bb"><i style="width:0.0%"></i></span><span class="bv">0 km · 0%</span></div></div>
+  </div>
+
+  <div class="card">
+    <h3>Détail</h3>
+    <div class="seg" id="segTable">
+      <button data-g="day" class="on">Par jour</button>
+      <button data-g="week">Par semaine</button>
+      <button data-g="month">Par mois</button>
+    </div>
+    <div style="overflow-x:auto"><table id="detailTable"><tbody><tr><th>Jour</th><th class="n">km</th><th class="n">Trajets</th><th class="n">Durée</th><th class="n">Cumul</th></tr><tr><td colspan="5" style="color:var(--dim)">Aucune donnée</td></tr></tbody></table></div>
+  </div>
+
+  <div class="card">
+    <h3>Export</h3>
+    <div class="row">
+      <button class="btn" id="btnCsv">Exporter CSV</button>
+      <button class="btn" id="btnJson">Sauvegarde JSON</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ RÉGLAGES ============ -->
+<section id="view-settings" class="view">
+  <div class="card">
+    <h3>Apprenti conducteur</h3>
+    <div class="field"><label for="stName">Prénom</label><input id="stName" placeholder="Prénom du conducteur"></div>
+    <div class="field"><label for="stStart">Date de début de l'AAC</label><input id="stStart" type="date"></div>
+    <div class="field"><label for="stGoal">Objectif (km)</label><input id="stGoal" type="number" min="0" step="100" value="3000"></div>
+    <div class="hint">Réglementation AAC : 3 000 km minimum et 1 an minimum de conduite accompagnée,
+      avec 2 rendez-vous pédagogiques (le 1<sup>er</sup> vers 1 000 km, le 2<sup>e</sup> avant l'examen).</div>
+    <button class="btn primary" id="btnSaveSettings">Enregistrer</button>
+  </div>
+
+  <div class="card">
+    <h3>GPS</h3>
+    <div class="field"><label for="stAcc">Précision minimale acceptée (m)</label>
+      <input id="stAcc" type="number" min="5" max="100" step="5" value="30"></div>
+    <div class="hint">Les points GPS moins précis que cette valeur sont ignorés. 30 m est un bon compromis
+      (baisse à 20 m en ville dégagée, monte à 50 m si le signal est faible).</div>
+    <div class="check"><input type="checkbox" id="stAutoNight"><label for="stAutoNight">Cocher « nuit » automatiquement (21h–7h)</label></div>
+    <button class="btn primary" id="btnSaveGps">Enregistrer</button>
+  </div>
+
+  <div class="card">
+    <h3>Synchronisation Firebase</h3>
+    <div class="field"><label for="stSpace">Code d'espace partagé</label>
+      <input id="stSpace" placeholder="ex : aac-tom" autocapitalize="none"></div>
+    <div class="field"><label for="stCfg">Config Firebase (JSON)</label>
+      <textarea id="stCfg" rows="6" spellcheck="false" placeholder="{&quot;apiKey&quot;:&quot;...&quot;,&quot;databaseURL&quot;:&quot;https://xxx.firebaseio.com&quot;,&quot;projectId&quot;:&quot;...&quot;}"></textarea></div>
+    <div class="hint">Colle ici la config de ton projet Firebase (celle de <b>oj-chantier</b> convient).
+      Le même code d'espace sur deux téléphones = mêmes trajets partagés en temps réel.
+      Sans config, tout reste en local sur le téléphone.</div>
+    <div class="row">
+      <button class="btn primary" id="btnConnect">Connecter</button>
+      <button class="btn" id="btnDisconnect">Déconnecter</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Données</h3>
+    <div class="field"><label for="fileImport">Restaurer une sauvegarde JSON</label><input type="file" id="fileImport" accept="application/json,.json"></div>
+    <button class="btn danger" id="btnWipe">Effacer toutes les données locales</button>
+    <div class="hint" id="storeInfo" style="margin-top:10px">0 trajets · 0.0 Ko en mémoire locale</div>
+  </div>
+</section>
+
+</main>
+
+<nav id="tabbar">
+  <button data-v="drive" class=""><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle><path d="M12 3v6M4.2 16.5l5.2-3M19.8 16.5l-5.2-3"></path></svg>Rouler</button>
+  <button data-v="trips" class="on"><svg viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"></path></svg>Trajets</button>
+  <button data-v="stats" class=""><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"></path></svg>Stats</button>
+  <button data-v="settings" class=""><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2 2 2 0 1 1-4 0 1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 3 15a2 2 0 1 1 0-4 1.7 1.7 0 0 0 1.2-2.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 9 4.6a2 2 0 1 1 4 0 1.7 1.7 0 0 0 2.9 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1A1.7 1.7 0 0 0 21 11a2 2 0 1 1 0 4z"></path></svg>Réglages</button>
+</nav>
+
+<dialog id="dlg"><form method="dialog" class="sheet" id="tripForm">
+  <h2 id="dlgTitle">Trajet</h2>
+  <div class="row">
+    <div class="field"><label for="fDate">Date &amp; heure de départ</label><input id="fDate" type="datetime-local" required=""></div>
+  </div>
+  <div class="row">
+    <div class="field"><label for="fKm">Distance (km)</label><input id="fKm" type="number" step="0.1" min="0" required="" inputmode="decimal"></div>
+    <div class="field"><label for="fDur">Durée (min)</label><input id="fDur" type="number" step="1" min="0" inputmode="numeric"></div>
+  </div>
+  <div class="row">
+    <div class="field"><label for="fOdo1">Compteur départ</label><input id="fOdo1" type="number" step="1" min="0" inputmode="numeric" placeholder="optionnel"></div>
+    <div class="field"><label for="fOdo2">Compteur arrivée</label><input id="fOdo2" type="number" step="1" min="0" inputmode="numeric" placeholder="optionnel"></div>
+  </div>
+  <div class="row">
+    <div class="field"><label for="fFrom">Départ</label><input id="fFrom" placeholder="Vannes"></div>
+    <div class="field"><label for="fTo">Arrivée</label><input id="fTo" placeholder="Damgan"></div>
+  </div>
+  <div class="row">
+    <div class="field"><label for="fRoadT">Type de route</label><select id="fRoadT">
+      <option value="ville">Ville</option><option value="route" selected="">Route</option>
+      <option value="autoroute">Autoroute</option><option value="mixte">Mixte</option></select></div>
+    <div class="field"><label for="fWeather">Météo</label><select id="fWeather">
+      <option value="sec">Sec</option><option value="pluie">Pluie</option>
+      <option value="brouillard">Brouillard</option><option value="vent">Vent fort</option>
+      <option value="neige">Neige / verglas</option></select></div>
+  </div>
+  <div class="check"><input type="checkbox" id="fNight"><label for="fNight">Conduite de nuit</label></div>
+  <div class="field"><label for="fNote">Note (optionnel)</label><input id="fNote" placeholder="créneau, rond-points, péage…"></div>
+  <div class="actions">
+    <button class="btn" value="cancel" id="fCancel" type="submit" formnovalidate="">Annuler</button>
+    <button class="btn danger hide" value="delete" id="fDelete" type="submit" formnovalidate="">Supprimer</button>
+    <button class="btn primary" value="save" id="fSave" type="submit">Enregistrer</button>
+  </div>
+  <input type="hidden" id="fId">
+</form></dialog>
+
+<div id="toast"></div>
+
+<script>
+/* =====================================================================
+   Carnet AAC — application mono-fichier
+   Architecture : local-first (localStorage = source de vérité hors-ligne)
+                  + miroir Firebase Realtime Database (last-write-wins)
+   Couches      : store (données) · sync (firebase) · geo (GPS) · ui (rendu)
+   ===================================================================== */
+'use strict';
+
+const LS_TRIPS='aac.trips.v2', LS_SET='aac.settings.v2', LS_LIVE='aac.live.v2';
+const $=(s)=>document.querySelector(s), $$=(s)=>Array.from(document.querySelectorAll(s));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+const now=()=>Date.now();
+
+/* ---------------------------------------------------------------- state */
+const state={
+  trips:{},                    // id -> trip (tombstones inclus : {deleted:true})
+  set:{name:'',startDate:'',goal:3000,minAcc:30,autoNight:true,space:'',fbCfg:''},
+  live:null,                   // session GPS en cours
+  chartGroup:'day', tableGroup:'day'
+};
+
+/* ---------------------------------------------------------------- store */
+const store={
+  load(){
+    try{ state.trips=JSON.parse(localStorage.getItem(LS_TRIPS)||'{}')||{}; }catch(e){ state.trips={}; }
+    try{ Object.assign(state.set, JSON.parse(localStorage.getItem(LS_SET)||'{}')||{}); }catch(e){}
+    try{ state.live=JSON.parse(localStorage.getItem(LS_LIVE)||'null'); }catch(e){ state.live=null; }
+  },
+  persistTrips(){ try{ localStorage.setItem(LS_TRIPS,JSON.stringify(state.trips)); }
+                  catch(e){ toast('Mémoire du navigateur pleine'); } },
+  persistSet(){ localStorage.setItem(LS_SET,JSON.stringify(state.set)); },
+  persistLive(){ state.live? localStorage.setItem(LS_LIVE,JSON.stringify(state.live))
+                           : localStorage.removeItem(LS_LIVE); },
+  upsert(t){ t.updatedAt=now(); state.trips[t.id]=t; this.persistTrips(); sync.push(t); },
+  remove(id){ const t=state.trips[id]; if(!t) return;
+    state.trips[id]={id,deleted:true,updatedAt:now()}; this.persistTrips(); sync.push(state.trips[id]); },
+  list(){ return Object.values(state.trips).filter(t=>t&&!t.deleted&&typeof t.km==='number')
+            .sort((a,b)=>b.startTs-a.startTs); }
+};
+
+/* ---------------------------------------------------------------- sync */
+const sync={
+  db:null, ref:null, queue:new Set(), online:false,
+  status(cls,txt){ const d=$('#syncDot'); d.className=cls||''; $('#syncTxt').textContent=txt; },
+
+  async connect(silent){
+    const cfgTxt=(state.set.fbCfg||'').trim(), space=(state.set.space||'').trim();
+    if(!cfgTxt||!space){ this.status('','local'); return false; }
+    let cfg; try{ cfg=JSON.parse(cfgTxt); }
+    catch(e){ this.status('err','config ?'); if(!silent) toast('Config Firebase illisible (JSON)'); return false; }
+    try{
+      await loadFirebase();
+      if(!window.firebase.apps.length) window.firebase.initializeApp(cfg);
+      this.db=window.firebase.database();
+      this.ref=this.db.ref('aac/'+space.replace(/[.#$/\[\]]/g,'_')+'/trips');
+      this.db.ref('.info/connected').on('value',s=>{
+        this.online=!!s.val();
+        this.status(this.online?'ok':'pending', this.online?'sync':'hors ligne');
+        if(this.online) this.flush();
+      });
+      this.ref.on('value',s=>{ this.merge(s.val()||{}); }, err=>{
+        this.status('err','refusé'); if(!silent) toast('Firebase : '+err.message);
+      });
+      return true;
+    }catch(e){ this.status('err','erreur'); if(!silent) toast('Connexion impossible : '+e.message); return false; }
+  },
+
+  disconnect(){ try{ if(this.ref) this.ref.off(); }catch(e){}
+    this.ref=null; this.db=null; this.online=false; this.status('','local'); },
+
+  /* fusion last-write-wins, dans les deux sens */
+  merge(remote){
+    let changed=false;
+    for(const id in remote){
+      const r=remote[id]; if(!r||!r.id) continue;
+      const l=state.trips[id];
+      if(!l || (r.updatedAt||0)>(l.updatedAt||0)){ state.trips[id]=r; changed=true; }
+    }
+    for(const id in state.trips){
+      const l=state.trips[id], r=remote[id];
+      if(!r || (l.updatedAt||0)>(r.updatedAt||0)) this.queue.add(id);
+    }
+    if(changed) store.persistTrips();
+    this.flush();
+    if(changed) ui.renderAll();
+  },
+
+  push(t){ this.queue.add(t.id); this.flush(); },
+
+  flush(){
+    if(!this.ref||!this.online){ if(this.queue.size) this.status('pending','en attente'); return; }
+    const ids=Array.from(this.queue); this.queue.clear();
+    const patch={}; ids.forEach(id=>{ if(state.trips[id]) patch[id]=state.trips[id]; });
+    if(!Object.keys(patch).length) return;
+    this.ref.update(patch).then(()=>this.status('ok','sync'))
+      .catch(e=>{ ids.forEach(i=>this.queue.add(i)); this.status('err','erreur'); });
+  }
+};
+
+function loadScript(src){ return new Promise((res,rej)=>{
+  const s=document.createElement('script'); s.src=src; s.async=true;
+  s.onload=res; s.onerror=()=>rej(new Error('script '+src)); document.head.appendChild(s); }); }
+
+let fbLoaded=null;
+function loadFirebase(){
+  if(window.firebase&&window.firebase.database) return Promise.resolve();
+  if(fbLoaded) return fbLoaded;
+  const V='10.12.2';
+  const sets=[
+    ['https://www.gstatic.com/firebasejs/'+V+'/firebase-app-compat.js',
+     'https://www.gstatic.com/firebasejs/'+V+'/firebase-database-compat.js'],
+    ['https://cdnjs.cloudflare.com/ajax/libs/firebase/'+V+'/firebase-app-compat.js',
+     'https://cdnjs.cloudflare.com/ajax/libs/firebase/'+V+'/firebase-database-compat.js']
+  ];
+  fbLoaded=(async()=>{
+    let last;
+    for(const [a,b] of sets){
+      try{ await loadScript(a); await loadScript(b); if(window.firebase&&window.firebase.database) return; }
+      catch(e){ last=e; }
+    }
+    throw last||new Error('SDK Firebase indisponible');
+  })();
+  return fbLoaded;
+}
+
+/* ---------------------------------------------------------------- géo */
+const R=6371008.8;
+function haversine(a,b){
+  const p=Math.PI/180, dLat=(b.lat-a.lat)*p, dLon=(b.lon-a.lon)*p;
+  const la1=a.lat*p, la2=b.lat*p;
+  const h=Math.sin(dLat/2)**2 + Math.cos(la1)*Math.cos(la2)*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.min(1,Math.sqrt(h)));
+}
+
+const geo={
+  watchId:null, wakeLock:null, tick:null,
+
+  start(){
+    if(!navigator.geolocation){ toast('Géolocalisation indisponible sur ce navigateur'); return; }
+    if(!window.isSecureContext) toast('Ouvre la page en HTTPS : le GPS est bloqué sinon');
+    state.live={startTs:now(), km:0, last:null, lastFix:0, paused:false,
+                pausedMs:0, pauseAt:0, speed:0, acc:null, pts:0, maxSpeed:0};
+    store.persistLive(); this.attach(); ui.driveMode();
+  },
+
+  resume(){ if(state.live){ this.attach(); ui.driveMode(); } },
+
+  attach(){
+    this.watchId=navigator.geolocation.watchPosition(
+      p=>this.onFix(p),
+      e=>{ const m={1:'Autorisation GPS refusée',2:'Position indisponible',3:'GPS trop lent'}[e.code]||e.message;
+           $('#gpsLive').innerHTML='<b style="color:var(--dangr)">'+m+'</b>'; },
+      {enableHighAccuracy:true, maximumAge:0, timeout:20000});
+    this.tick=setInterval(()=>ui.liveTick(),1000);
+    this.lock();
+    document.addEventListener('visibilitychange',this.onVis);
+  },
+
+  onVis(){ if(document.visibilityState==='visible'&&state.live) geo.lock(); },
+
+  async lock(){ try{ if('wakeLock' in navigator && !this.wakeLock)
+      { this.wakeLock=await navigator.wakeLock.request('screen');
+        this.wakeLock.addEventListener('release',()=>{this.wakeLock=null;}); } }catch(e){} },
+
+  unlock(){ try{ this.wakeLock&&this.wakeLock.release(); }catch(e){} this.wakeLock=null; },
+
+  onFix(pos){
+    const L=state.live; if(!L||L.paused) return;
+    const c=pos.coords, acc=c.accuracy==null?999:c.accuracy;
+    L.acc=Math.round(acc);
+    if(acc>state.set.minAcc){ ui.gpsQuality(acc,true); return; }   // point trop imprécis
+    const pt={lat:c.latitude, lon:c.longitude, t:pos.timestamp||now()};
+    if(L.last){
+      const d=haversine(L.last,pt);                                // mètres
+      const dt=Math.max(0.001,(pt.t-L.last.t)/1000);
+      const v=d/dt;                                                // m/s
+      const seuil=Math.max(8,acc*0.6);                             // filtre bruit à l'arrêt
+      if(d>=seuil && v<55){                                        // < 198 km/h : rejette les sauts
+        L.km+=d/1000;
+        L.speed=(c.speed!=null&&c.speed>=0)?c.speed*3.6:v*3.6;
+        if(L.speed>L.maxSpeed) L.maxSpeed=L.speed;
+        L.last=pt; L.pts++;
+      } else if(v<0.6){ L.speed=0; L.last=pt; }
+    } else { L.last=pt; L.pts++; }
+    L.lastFix=now(); store.persistLive(); ui.gpsQuality(acc,false); ui.liveTick();
+  },
+
+  pause(){ const L=state.live; if(!L) return;
+    L.paused=!L.paused;
+    if(L.paused){ L.pauseAt=now(); L.speed=0; } else { L.pausedMs+=now()-L.pauseAt; L.last=null; }
+    store.persistLive(); ui.driveMode(); },
+
+  stop(){
+    const L=state.live; if(!L) return null;
+    if(L.paused) L.pausedMs+=now()-L.pauseAt;
+    navigator.geolocation.clearWatch(this.watchId); this.watchId=null;
+    clearInterval(this.tick); this.tick=null; this.unlock();
+    document.removeEventListener('visibilitychange',this.onVis);
+    const res={startTs:L.startTs, endTs:now(), km:Math.round(L.km*100)/100,
+               durS:Math.round((now()-L.startTs-L.pausedMs)/1000), maxSpeed:Math.round(L.maxSpeed)};
+    state.live=null; store.persistLive(); return res;
+  },
+
+  elapsed(){ const L=state.live; if(!L) return 0;
+    const p=L.pausedMs+(L.paused?now()-L.pauseAt:0);
+    return Math.max(0,(now()-L.startTs-p)/1000); }
+};
+
+/* ------------------------------------------------------------- dates */
+const pad=n=>String(n).padStart(2,'0');
+const dayKey=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const monthKey=d=>d.getFullYear()+'-'+pad(d.getMonth()+1);
+function isoWeekKey(d){
+  const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  const day=t.getUTCDay()||7; t.setUTCDate(t.getUTCDate()+4-day);
+  const y0=new Date(Date.UTC(t.getUTCFullYear(),0,1));
+  const w=Math.ceil(((t-y0)/86400000+1)/7);
+  return t.getUTCFullYear()+'-S'+pad(w);
+}
+function startOfWeek(d){ const x=new Date(d); x.setHours(0,0,0,0);
+  const dw=(x.getDay()+6)%7; x.setDate(x.getDate()-dw); return x; }
+function startOfDay(d){ const x=new Date(d); x.setHours(0,0,0,0); return x; }
+function startOfMonth(d){ return new Date(d.getFullYear(),d.getMonth(),1); }
+const fmtKm=v=>(Math.round(v*10)/10).toLocaleString('fr-FR',{minimumFractionDigits:1,maximumFractionDigits:1});
+const fmtKm0=v=>Math.round(v).toLocaleString('fr-FR');
+function fmtDur(s){ s=Math.max(0,Math.round(s)); const h=Math.floor(s/3600), m=Math.floor(s%3600/60);
+  return h? h+'h'+pad(m) : m+' min'; }
+function fmtClock(s){ s=Math.max(0,Math.round(s)); const h=Math.floor(s/3600), m=Math.floor(s%3600/60), x=s%60;
+  return (h?h+':':'')+pad(m)+':'+pad(x); }
+function toLocalInput(ts){ const d=new Date(ts);
+  return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes()); }
+
+/* ------------------------------------------------------------- agrégats */
+function keyOf(t,g){ const d=new Date(t.startTs);
+  return g==='day'?dayKey(d):g==='week'?isoWeekKey(d):monthKey(d); }
+
+function aggregate(trips,g){
+  const m=new Map();
+  for(const t of trips){ const k=keyOf(t,g);
+    const o=m.get(k)||{km:0,n:0,s:0}; o.km+=t.km; o.n++; o.s+=(t.durS||0); m.set(k,o); }
+  return m;
+}
+function buckets(g,n){
+  const out=[], today=new Date();
+  if(g==='day'){ for(let i=n-1;i>=0;i--){ const d=startOfDay(today); d.setDate(d.getDate()-i);
+      out.push({key:dayKey(d), label:pad(d.getDate())+'/'+pad(d.getMonth()+1), date:d}); } }
+  else if(g==='week'){ for(let i=n-1;i>=0;i--){ const d=startOfWeek(today); d.setDate(d.getDate()-7*i);
+      out.push({key:isoWeekKey(d), label:'S'+isoWeekKey(d).split('S')[1], date:d}); } }
+  else { for(let i=n-1;i>=0;i--){ const d=new Date(today.getFullYear(),today.getMonth()-i,1);
+      out.push({key:monthKey(d), label:d.toLocaleDateString('fr-FR',{month:'short'}), date:d}); } }
+  return out;
+}
+function sumSince(trips,ts){ let k=0; for(const t of trips) if(t.startTs>=ts) k+=t.km; return k; }
+
+/* ------------------------------------------------------------- UI */
+let toastT=null;
+function toast(msg){ const el=$('#toast'); el.textContent=msg; el.classList.add('on');
+  clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove('on'),2600); }
+
+const ui={
+  renderAll(){ this.goal(); this.tiles(); this.trips(); this.stats(); },
+
+  goal(){
+    const all=store.list(), total=all.reduce((s,t)=>s+t.km,0), goal=state.set.goal||3000;
+    $('#gTotal').textContent=fmtKm0(total);
+    $('#gGoal').textContent=fmtKm0(goal);
+    $('#gBar').style.width=Math.min(100,total/goal*100).toFixed(1)+'%';
+    const left=Math.max(0,goal-total);
+    $('#gLeft').textContent = left>0 ? 'reste '+fmtKm0(left)+' km' : 'objectif atteint 🎉';
+    if(state.set.startDate){
+      const s=new Date(state.set.startDate+'T00:00:00');
+      const e=new Date(s); e.setFullYear(e.getFullYear()+1);
+      const days=Math.ceil((e-new Date())/86400000);
+      $('#gDate').textContent = days>0
+        ? days+' j avant la fin des 12 mois'
+        : '12 mois écoulés depuis le '+s.toLocaleDateString('fr-FR');
+    } else $('#gDate').textContent='date de début non réglée';
+    $('#whoLbl').textContent=state.set.name?'· '+state.set.name:'';
+  },
+
+  tiles(){
+    const all=store.list(), n=new Date();
+    $('#tToday').innerHTML=fmtKm(sumSince(all,startOfDay(n).getTime()))+'<small> km</small>';
+    $('#tWeek').innerHTML =fmtKm(sumSince(all,startOfWeek(n).getTime()))+'<small> km</small>';
+    $('#tMonth').innerHTML=fmtKm(sumSince(all,startOfMonth(n).getTime()))+'<small> km</small>';
+    $('#tCount').textContent=all.length;
+  },
+
+  filtered(){
+    let all=store.list();
+    const p=$('#fPeriod').value, r=$('#fRoad').value, n=new Date();
+    if(p==='month') all=all.filter(t=>t.startTs>=startOfMonth(n).getTime());
+    else if(p==='week') all=all.filter(t=>t.startTs>=startOfWeek(n).getTime());
+    else if(p==='30'){ const d=startOfDay(n); d.setDate(d.getDate()-29); all=all.filter(t=>t.startTs>=d.getTime()); }
+    else if(p==='year') all=all.filter(t=>t.startTs>=new Date(n.getFullYear(),0,1).getTime());
+    if(r) all=all.filter(t=>(t.road||'route')===r);
+    return all;
+  },
+
+  trips(){
+    const list=this.filtered(), box=$('#tripList');
+    $('#fCount').textContent=list.length+' trajet'+(list.length>1?'s':'');
+    $('#fSum').textContent=fmtKm(list.reduce((s,t)=>s+t.km,0))+' km';
+    if(!list.length){ box.innerHTML='<div class="empty">Aucun trajet sur cette période.<br>Appuie sur « Démarrer le trajet » pour commencer.</div>'; return; }
+    const groups=new Map();
+    for(const t of list){ const k=dayKey(new Date(t.startTs));
+      if(!groups.has(k)) groups.set(k,[]); groups.get(k).push(t); }
+    let h='';
+    for(const [k,arr] of groups){
+      const d=new Date(k+'T00:00:00');
+      const km=arr.reduce((s,t)=>s+t.km,0);
+      h+='<div class="daygroup"><div class="dayhead"><span>'+
+         d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})+
+         '</span><b>'+fmtKm(km)+' km</b></div>';
+      for(const t of arr){
+        const hh=new Date(t.startTs).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+        const title=(t.from||t.to)?((t.from||'?')+' → '+(t.to||'?')):'Trajet';
+        let tags='<span class="tag">'+(t.road||'route')+'</span>';
+        if(t.night) tags+='<span class="tag n">nuit</span>';
+        if(t.weather&&t.weather!=='sec') tags+='<span class="tag a">'+t.weather+'</span>';
+        if(t.source==='manual') tags+='<span class="tag">saisi</span>';
+        h+='<div class="trip" data-id="'+t.id+'">'+
+             '<div class="d">'+fmtKm(t.km)+'<small> km</small></div>'+
+             '<div class="i"><div class="t">'+esc(title)+'</div>'+
+               '<div class="s"><span>'+hh+'</span><span>'+(t.durS?fmtDur(t.durS):'—')+'</span>'+tags+'</div></div>'+
+           '</div>';
+      }
+      h+='</div>';
+    }
+    box.innerHTML=h;
+    box.querySelectorAll('.trip').forEach(el=>el.addEventListener('click',()=>openTrip(state.trips[el.dataset.id])));
+  },
+
+  stats(){
+    const all=store.list();
+    const total=all.reduce((s,t)=>s+t.km,0), time=all.reduce((s,t)=>s+(t.durS||0),0);
+    $('#sTotal').innerHTML=fmtKm(total)+'<small> km</small>';
+    $('#sTrips').textContent=all.length;
+    $('#sAvg').innerHTML=(all.length?fmtKm(total/all.length):'0')+'<small> km</small>';
+    $('#sTime').innerHTML=(Math.round(time/360)/10).toLocaleString('fr-FR')+'<small> h</small>';
+    this.chart(all); this.breakdown(all,total); this.table(all);
+  },
+
+  chart(all){
+    const g=state.chartGroup, n=g==='day'?14:g==='week'?8:12;
+    const agg=aggregate(all,g), bs=buckets(g,n).map(b=>({...b,km:(agg.get(b.key)||{km:0}).km}));
+    const cv=$('#chart'), dpr=window.devicePixelRatio||1;
+    const W=cv.clientWidth, H=190;
+    cv.width=W*dpr; cv.height=H*dpr;
+    const c=cv.getContext('2d'); c.setTransform(dpr,0,0,dpr,0,0); c.clearRect(0,0,W,H);
+    const max=Math.max(1,...bs.map(b=>b.km));
+    const step=Math.max(1,Math.ceil(bs.length/Math.max(4,Math.floor(W/46))));
+    const padL=6, padB=22, padT=18, bw=(W-padL*2)/bs.length;
+    c.font='500 10px system-ui,sans-serif'; c.textAlign='center';
+    c.strokeStyle='#2a2f3a'; c.beginPath(); c.moveTo(0,H-padB+.5); c.lineTo(W,H-padB+.5); c.stroke();
+    bs.forEach((b,i)=>{
+      const x=padL+i*bw, h=(b.km/max)*(H-padB-padT);
+      const grd=c.createLinearGradient(0,H-padB-h,0,H-padB);
+      grd.addColorStop(0,'#3ddc84'); grd.addColorStop(1,'#4da3ff');
+      c.fillStyle=b.km>0?grd:'#232833';
+      const w=Math.max(4,bw*0.62), bx=x+(bw-w)/2, bh=Math.max(b.km>0?3:2,h);
+      c.beginPath();
+      if(c.roundRect) c.roundRect(bx,H-padB-bh,w,bh,[4,4,0,0]); else c.rect(bx,H-padB-bh,w,bh);
+      c.fill();
+      if(b.km>0){ c.fillStyle='#e8ecf3'; c.fillText(fmtKm0(b.km),x+bw/2,H-padB-bh-6); }
+      if((bs.length-1-i)%step===0){ c.fillStyle='#98a2b3'; c.fillText(b.label,x+bw/2,H-7); }
+    });
+  },
+
+  breakdown(all,total){
+    const roads={ville:0,route:0,autoroute:0,mixte:0};
+    let night=0, rain=0;
+    for(const t of all){ roads[t.road||'route']=(roads[t.road||'route']||0)+t.km;
+      if(t.night) night+=t.km; if(t.weather&&t.weather!=='sec') rain+=t.km; }
+    const rows=[['Ville',roads.ville],['Route',roads.route],['Autoroute',roads.autoroute],
+                ['Mixte',roads.mixte],['De nuit',night],['Intempéries',rain]];
+    $('#breakdown').innerHTML=rows.map(([l,v])=>{
+      const p=total?v/total*100:0;
+      return '<div class="brow"><span class="bl">'+l+'</span><span class="bb"><i style="width:'+
+        p.toFixed(1)+'%"></i></span><span class="bv">'+fmtKm0(v)+' km · '+Math.round(p)+'%</span></div>';
+    }).join('');
+  },
+
+  table(all){
+    const g=state.tableGroup, agg=aggregate(all,g);
+    const keys=Array.from(agg.keys()).sort().reverse().slice(0,40);
+    const asc=Array.from(agg.keys()).sort();
+    const cum={}; let run=0; for(const k of asc){ run+=agg.get(k).km; cum[k]=run; }
+    const head='<tr><th>'+(g==='day'?'Jour':g==='week'?'Semaine':'Mois')+
+      '</th><th class="n">km</th><th class="n">Trajets</th><th class="n">Durée</th><th class="n">Cumul</th></tr>';
+    const body=keys.map(k=>{ const o=agg.get(k);
+      return '<tr><td>'+labelKey(k,g)+'</td><td class="n">'+fmtKm(o.km)+'</td><td class="n">'+o.n+
+             '</td><td class="n">'+fmtDur(o.s)+'</td><td class="n">'+fmtKm0(cum[k])+'</td></tr>'; }).join('');
+    $('#detailTable').innerHTML=head+(body||'<tr><td colspan="5" style="color:var(--dim)">Aucune donnée</td></tr>');
+  },
+
+  driveMode(){
+    const L=state.live;
+    $('#idleBox').classList.toggle('hide',!!L);
+    $('#liveBox').classList.toggle('hide',!L);
+    if(L) $('#btnPause').textContent=L.paused?'▶︎ Reprendre':'⏸ Pause';
+    this.liveTick();
+  },
+
+  liveTick(){
+    const L=state.live; if(!L) return;
+    const s=geo.elapsed();
+    $('#lvKm').textContent=L.km.toFixed(2);
+    $('#lvTime').textContent=fmtClock(s);
+    $('#lvSpeed').textContent=Math.round(L.paused?0:(L.speed||0));
+    $('#lvAvg').textContent=s>30?Math.round(L.km/(s/3600)):0;
+    if(L.paused) $('#gpsLive').innerHTML='<b style="color:var(--warn)">En pause</b>';
+    else if(L.lastFix && now()-L.lastFix>15000) $('#gpsLive').innerHTML='<b style="color:var(--warn)">Signal perdu…</b>';
+  },
+
+  gpsQuality(acc,rejected){
+    const el=$('#gpsLive'); if(!el||!state.live||state.live.paused) return;
+    el.className='gpsq'+(rejected?' bad':'');
+    el.innerHTML='Précision GPS <b>±'+Math.round(acc)+' m</b>'+
+      (rejected?' — point ignoré (seuil '+state.set.minAcc+' m)':' · '+state.live.pts+' points');
+  }
+};
+
+function labelKey(k,g){
+  if(g==='day'){ const d=new Date(k+'T00:00:00');
+    return d.toLocaleDateString('fr-FR',{weekday:'short',day:'2-digit',month:'2-digit'}); }
+  if(g==='week'){ const [y,w]=k.split('-S'); return 'Sem. '+w+' · '+y; }
+  const [y,m]=k.split('-');
+  return new Date(+y,+m-1,1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+}
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ------------------------------------------------------------- dialogue */
+const dlg=$('#dlg');
+let prefillSource=null, pendingMax=null;
+function openTrip(trip,prefill){
+  const t=trip||null;
+  prefillSource=(prefill&&prefill.source)||null;
+  $('#dlgTitle').textContent=t?'Modifier le trajet':'Nouveau trajet';
+  $('#fDelete').classList.toggle('hide',!t);
+  const src=t||prefill||{};
+  const ts=src.startTs||now();
+  $('#fId').value=t?t.id:'';
+  $('#fDate').value=toLocalInput(ts);
+  $('#fKm').value=src.km!=null?(Math.round(src.km*100)/100):'';
+  $('#fDur').value=src.durS?Math.round(src.durS/60):'';
+  $('#fOdo1').value=src.odo1||''; $('#fOdo2').value=src.odo2||'';
+  $('#fFrom').value=src.from||''; $('#fTo').value=src.to||'';
+  $('#fRoadT').value=src.road||'route';
+  $('#fWeather').value=src.weather||'sec';
+  const hr=new Date(ts).getHours();
+  $('#fNight').checked = src.night!=null ? !!src.night : (state.set.autoNight && (hr>=21||hr<7));
+  $('#fNote').value=src.note||'';
+  pendingMax=src.maxSpeed||null;
+  dlg.showModal();
+}
+dlg.addEventListener('close',()=>{
+  const v=dlg.returnValue;
+  if(v==='delete'){ const id=$('#fId').value;
+    if(id && confirm('Supprimer ce trajet ?')){ store.remove(id); ui.renderAll(); toast('Trajet supprimé'); }
+    return; }
+  if(v!=='save') return;
+  const id=$('#fId').value||uid();
+  const old=state.trips[id]||{};
+  const startTs=new Date($('#fDate').value).getTime()||now();
+  const durS=Math.round((+$('#fDur').value||0)*60);
+  const t={ id, deleted:false,
+    startTs, endTs:startTs+durS*1000, durS,
+    km:Math.max(0,Math.round((+$('#fKm').value||0)*100)/100),
+    odo1:+$('#fOdo1').value||null, odo2:+$('#fOdo2').value||null,
+    from:$('#fFrom').value.trim(), to:$('#fTo').value.trim(),
+    road:$('#fRoadT').value, weather:$('#fWeather').value,
+    night:$('#fNight').checked, note:$('#fNote').value.trim(),
+    source:old.source||prefillSource||'manual', maxSpeed:old.maxSpeed||pendingMax||null,
+    createdAt:old.createdAt||now(), driver:state.set.name||'' };
+  store.upsert(t); ui.renderAll(); toast(fmtKm(t.km)+' km enregistrés');
+});
+/* compteur départ/arrivée -> distance automatique */
+['#fOdo1','#fOdo2'].forEach(s=>$(s).addEventListener('input',()=>{
+  const a=+$('#fOdo1').value, b=+$('#fOdo2').value;
+  if(a>0&&b>a) $('#fKm').value=Math.round((b-a)*100)/100;
+}));
+
+/* ------------------------------------------------------------- export */
+function download(name,mime,data){
+  const b=new Blob([data],{type:mime}), u=URL.createObjectURL(b);
+  const a=document.createElement('a'); a.href=u; a.download=name; document.body.appendChild(a);
+  a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),4000);
+}
+function exportCsv(){
+  const rows=[['Date','Heure','Distance (km)','Durée (min)','Départ','Arrivée','Type de route','Météo','Nuit','Compteur départ','Compteur arrivée','Note','Source']];
+  for(const t of store.list().slice().reverse()){
+    const d=new Date(t.startTs);
+    rows.push([d.toLocaleDateString('fr-FR'), d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),
+      String(t.km).replace('.',','), t.durS?Math.round(t.durS/60):'', t.from||'', t.to||'',
+      t.road||'', t.weather||'', t.night?'oui':'non', t.odo1||'', t.odo2||'', (t.note||'').replace(/[\r\n;]/g,' '),
+      t.source==='gps'?'GPS':'saisie']);
+  }
+  const csv='\ufeff'+rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(';')).join('\r\n');
+  download('carnet-aac-'+dayKey(new Date())+'.csv','text/csv;charset=utf-8',csv);
+}
+function exportJson(){
+  download('carnet-aac-'+dayKey(new Date())+'.json','application/json',
+    JSON.stringify({version:2,exportedAt:new Date().toISOString(),settings:state.set,trips:state.trips},null,1));
+}
+
+/* ------------------------------------------------------------- events */
+$$('#tabbar button').forEach(b=>b.addEventListener('click',()=>{
+  $$('#tabbar button').forEach(x=>x.classList.toggle('on',x===b));
+  $$('.view').forEach(v=>v.classList.toggle('on',v.id==='view-'+b.dataset.v));
+  window.scrollTo(0,0);
+  if(b.dataset.v==='stats') ui.stats();
+}));
+$('#btnStart').addEventListener('click',()=>geo.start());
+$('#btnPause').addEventListener('click',()=>geo.pause());
+$('#btnStop').addEventListener('click',()=>{
+  const r=geo.stop(); ui.driveMode();
+  if(!r) return;
+  if(r.km<0.05){ toast('Trajet trop court, non enregistré'); ui.renderAll(); return; }
+  openTrip(null,{startTs:r.startTs,km:r.km,durS:r.durS,source:'gps',maxSpeed:r.maxSpeed});
+});
+$('#btnManual').addEventListener('click',()=>openTrip(null,{startTs:now()}));
+$('#fPeriod').addEventListener('change',()=>ui.trips());
+$('#fRoad').addEventListener('change',()=>ui.trips());
+$$('#segChart button').forEach(b=>b.addEventListener('click',()=>{
+  state.chartGroup=b.dataset.g; $$('#segChart button').forEach(x=>x.classList.toggle('on',x===b)); ui.stats(); }));
+$$('#segTable button').forEach(b=>b.addEventListener('click',()=>{
+  state.tableGroup=b.dataset.g; $$('#segTable button').forEach(x=>x.classList.toggle('on',x===b)); ui.stats(); }));
+$('#btnCsv').addEventListener('click',exportCsv);
+$('#btnJson').addEventListener('click',exportJson);
+window.addEventListener('resize',()=>{ if($('#view-stats').classList.contains('on')) ui.stats(); });
+
+$('#btnSaveSettings').addEventListener('click',()=>{
+  state.set.name=$('#stName').value.trim();
+  state.set.startDate=$('#stStart').value;
+  state.set.goal=Math.max(1,+$('#stGoal').value||3000);
+  store.persistSet(); ui.renderAll(); toast('Réglages enregistrés');
+});
+$('#btnSaveGps').addEventListener('click',()=>{
+  state.set.minAcc=Math.min(200,Math.max(5,+$('#stAcc').value||30));
+  state.set.autoNight=$('#stAutoNight').checked;
+  store.persistSet(); toast('Réglages GPS enregistrés');
+});
+$('#btnConnect').addEventListener('click',async()=>{
+  state.set.space=$('#stSpace').value.trim();
+  state.set.fbCfg=$('#stCfg').value.trim();
+  store.persistSet(); sync.disconnect();
+  if(await sync.connect(false)) toast('Firebase connecté');
+});
+$('#btnDisconnect').addEventListener('click',()=>{ sync.disconnect(); toast('Sync désactivée'); });
+$('#btnWipe').addEventListener('click',()=>{
+  if(!confirm('Effacer tous les trajets stockés sur CE téléphone ?\n(Les données déjà synchronisées sur Firebase seront retéléchargées.)')) return;
+  localStorage.removeItem(LS_TRIPS); localStorage.removeItem(LS_LIVE);
+  state.trips={}; state.live=null; ui.renderAll(); toast('Données locales effacées');
+});
+$('#fileImport').addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ try{
+      const d=JSON.parse(r.result); let n=0;
+      for(const id in (d.trips||{})){ const t=d.trips[id];
+        const l=state.trips[id];
+        if(!l||(t.updatedAt||0)>(l.updatedAt||0)){ state.trips[id]=t; sync.queue.add(id); n++; } }
+      store.persistTrips(); sync.flush(); ui.renderAll(); toast(n+' trajets importés');
+    }catch(err){ toast('Fichier illisible'); } };
+  r.readAsText(f); e.target.value='';
+});
+
+/* ------------------------------------------------------------- init */
+function fillSettings(){
+  $('#stName').value=state.set.name||''; $('#stStart').value=state.set.startDate||'';
+  $('#stGoal').value=state.set.goal||3000; $('#stAcc').value=state.set.minAcc||30;
+  $('#stAutoNight').checked=state.set.autoNight!==false;
+  $('#stSpace').value=state.set.space||''; $('#stCfg').value=state.set.fbCfg||'';
+  const bytes=(localStorage.getItem(LS_TRIPS)||'').length;
+  $('#storeInfo').textContent=store.list().length+' trajets · '+(bytes/1024).toFixed(1)+' Ko en mémoire locale';
+}
+(function init(){
+  store.load();
+  fillSettings();
+  ui.renderAll();
+  if(state.live){
+    if(confirm('Un trajet était en cours ('+state.live.km.toFixed(2)+' km). Le reprendre ?')){
+      state.live.last=null; geo.resume();
+    } else { const L=state.live; state.live=null; store.persistLive();
+      if(L.km>=0.05) openTrip(null,{startTs:L.startTs,km:Math.round(L.km*100)/100,
+        durS:Math.round((now()-L.startTs)/1000),source:'gps'}); }
+  }
+  ui.driveMode();
+  if(navigator.permissions&&navigator.permissions.query){
+    navigator.permissions.query({name:'geolocation'}).then(p=>{
+      $('#gpsIdle').textContent = p.state==='granted' ? 'GPS autorisé' :
+        p.state==='denied' ? 'GPS refusé — autorise la localisation dans les réglages du navigateur'
+                           : 'La localisation sera demandée au démarrage du trajet';
+    }).catch(()=>{});
+  }
+  sync.connect(true);
+})();
+</script>
+
+
+</body></html>
