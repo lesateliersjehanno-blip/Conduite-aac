@@ -334,6 +334,14 @@ dialog::backdrop{background:rgba(0,0,0,.6);backdrop-filter:blur(3px)}
     <button class="btn danger" id="btnWipe">Effacer toutes les données locales</button>
     <div class="hint" id="storeInfo" style="margin-top:10px"></div>
   </div>
+
+  <div class="card">
+    <h3>Version</h3>
+    <div class="hint" style="margin-bottom:10px">Version installée : <b id="appVer"></b><br>
+      Si tu viens de publier une mise à jour et que l'appli n'a pas changé, le téléphone sert encore
+      la copie en cache. Ce bouton la contourne.</div>
+    <button class="btn" id="btnUpdate">Forcer la mise à jour</button>
+  </div>
 </section>
 
 </main>
@@ -392,6 +400,7 @@ dialog::backdrop{background:rgba(0,0,0,.6);backdrop-filter:blur(3px)}
    ===================================================================== */
 'use strict';
 
+const APP_VERSION='2026-09-01.4';
 const LS_TRIPS='aac.trips.v2', LS_SET='aac.settings.v2', LS_LIVE='aac.live.v2';
 const $=(s)=>document.querySelector(s), $$=(s)=>Array.from(document.querySelectorAll(s));
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
@@ -953,6 +962,10 @@ $('#btnConnect').addEventListener('click',async()=>{
   if(await sync.connect(false)) toast('Firebase connecté');
 });
 $('#btnDisconnect').addEventListener('click',()=>{ sync.disconnect(); toast('Sync désactivée'); });
+$('#btnUpdate').addEventListener('click',()=>{
+  /* la chaîne de requête contourne le cache HTTP du navigateur et de l'icône d'accueil */
+  location.replace(location.pathname+'?maj='+Date.now());
+});
 $('#btnWipe').addEventListener('click',()=>{
   if(!confirm('Effacer tous les trajets stockés sur CE téléphone ?\n(Les données déjà synchronisées sur Firebase seront retéléchargées.)')) return;
   localStorage.removeItem(LS_TRIPS); localStorage.removeItem(LS_LIVE);
@@ -977,6 +990,7 @@ function fillSettings(){
   $('#stGoal').value=state.set.goal||3000; $('#stAcc').value=state.set.minAcc||30;
   $('#stAutoNight').checked=state.set.autoNight!==false;
   $('#stSpace').value=state.set.space||''; $('#stCfg').value=state.set.fbCfg||'';
+  $('#appVer').textContent=APP_VERSION;
   const bytes=(localStorage.getItem(LS_TRIPS)||'').length;
   $('#storeInfo').textContent=store.list().length+' trajets · '+(bytes/1024).toFixed(1)+' Ko en mémoire locale';
 }
