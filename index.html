@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<!-- saved from url=(0048)file:///C:/Users/olivier/Downloads/aac-km_2.html -->
-<html lang="fr"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-
+<html lang="fr">
+<head>
+<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0f1115">
 <meta name="mobile-web-app-capable" content="yes">
@@ -15,12 +15,13 @@
   --txt:#e8ecf3; --dim:#98a2b3; --accent:#3ddc84; --accent2:#4da3ff;
   --warn:#ffb020; --dangr:#ff5c5c; --radius:14px;
   --safe-b:env(safe-area-inset-bottom,0px);
+  color-scheme:dark;            /* contrôles natifs (dates, listes) en thème sombre */
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0;background:var(--bg);color:var(--txt);
   font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
 body{padding-bottom:calc(66px + var(--safe-b))}
-button,input,select,textarea{font:inherit;color:inherit}
+button,input,select,textarea{font:inherit;color:var(--txt)}
 h1,h2,h3{margin:0}
 .hide{display:none !important}
 
@@ -118,7 +119,9 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 /* ---------- form ---------- */
 label{display:block;font-size:12px;color:var(--dim);margin:0 0 5px;font-weight:600}
 input,select,textarea{width:100%;background:var(--card2);border:1px solid var(--line);border-radius:10px;
-  padding:11px 12px;outline:none}
+  padding:11px 12px;outline:none;color:var(--txt);-webkit-text-fill-color:var(--txt)}
+input::placeholder,textarea::placeholder{color:var(--dim);opacity:1}
+select option{background:var(--card2);color:var(--txt)}
 input:focus,select:focus,textarea:focus{border-color:var(--accent2)}
 .field{margin-bottom:11px}
 .check{display:flex;align-items:center;gap:10px;background:var(--card2);border:1px solid var(--line);
@@ -132,9 +135,9 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent2)}
 .hint{font-size:12px;color:var(--dim);margin-top:-4px;margin-bottom:11px}
 
 /* ---------- dialog ---------- */
-dialog{border:0;padding:0;background:transparent;max-width:520px;width:100%}
+dialog{border:0;padding:0;background:transparent;color:var(--txt);max-width:520px;width:100%}
 dialog::backdrop{background:rgba(0,0,0,.6);backdrop-filter:blur(3px)}
-.sheet{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;
+.sheet{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;color:var(--txt);
   max-height:88vh;overflow:auto;margin:auto}
 .sheet h2{font-size:17px;margin-bottom:14px}
 .sheet .actions{display:flex;gap:10px;margin-top:6px}
@@ -158,36 +161,36 @@ dialog::backdrop{background:rgba(0,0,0,.6);backdrop-filter:blur(3px)}
 
 <header id="topbar">
   <div class="brand">Carnet AAC <small id="whoLbl"></small></div>
-  <div id="syncDot" class=""><i></i><span id="syncTxt">local</span></div>
+  <div id="syncDot"><i></i><span id="syncTxt">local</span></div>
 </header>
 
 <main>
 
 <!-- ============ ROULER ============ -->
-<section id="view-drive" class="view">
+<section id="view-drive" class="view on">
   <div class="card goal">
-    <div class="big"><b id="gTotal">0</b><span>/ <span id="gGoal">3 000</span> km</span></div>
+    <div class="big"><b id="gTotal">0</b><span>/ <span id="gGoal">3000</span> km</span></div>
     <div class="bar"><i id="gBar" style="width:0%"></i></div>
-    <div class="sub"><span id="gLeft">reste 3 000 km</span><span id="gDate">date de début non réglée</span></div>
+    <div class="sub"><span id="gLeft">—</span><span id="gDate">—</span></div>
   </div>
 
-  <div class="card hide" id="idleBox">
+  <div class="card" id="idleBox">
     <button class="bigbtn" id="btnStart">▶︎  Démarrer le trajet</button>
     <div style="height:10px"></div>
     <button class="bigbtn ghost" id="btnManual">＋  Ajouter un trajet à la main</button>
-    <div class="gpsq" id="gpsIdle">La localisation sera demandée au démarrage du trajet</div>
+    <div class="gpsq" id="gpsIdle"></div>
   </div>
 
-  <div class="card" id="liveBox">
+  <div class="card hide" id="liveBox">
     <div class="live">
       <div class="km"><span id="lvKm">0.00</span><small> km</small></div>
       <div class="meta">
-        <span>⏱ <b id="lvTime">05:34</b></span>
+        <span>⏱ <b id="lvTime">00:00</b></span>
         <span>➜ <b id="lvSpeed">0</b> km/h</span>
         <span>Ø <b id="lvAvg">0</b> km/h</span>
       </div>
     </div>
-    <div class="gpsq" id="gpsLive"><b style="color:var(--dangr)">Autorisation GPS refusée</b></div>
+    <div class="gpsq" id="gpsLive">Acquisition du signal GPS…</div>
     <div style="height:14px"></div>
     <div class="row">
       <button class="bigbtn ghost" id="btnPause">⏸ Pause</button>
@@ -200,16 +203,16 @@ dialog::backdrop{background:rgba(0,0,0,.6);backdrop-filter:blur(3px)}
   <div class="card">
     <h3>Compteurs</h3>
     <div class="grid4">
-      <div class="tile"><div class="lbl">Aujourd'hui</div><div class="val" id="tToday">0,0<small> km</small></div></div>
-      <div class="tile"><div class="lbl">Semaine</div><div class="val" id="tWeek">0,0<small> km</small></div></div>
-      <div class="tile"><div class="lbl">Mois</div><div class="val" id="tMonth">0,0<small> km</small></div></div>
+      <div class="tile"><div class="lbl">Aujourd'hui</div><div class="val" id="tToday">0<small> km</small></div></div>
+      <div class="tile"><div class="lbl">Semaine</div><div class="val" id="tWeek">0<small> km</small></div></div>
+      <div class="tile"><div class="lbl">Mois</div><div class="val" id="tMonth">0<small> km</small></div></div>
       <div class="tile"><div class="lbl">Trajets</div><div class="val" id="tCount">0</div></div>
     </div>
   </div>
 </section>
 
 <!-- ============ TRAJETS ============ -->
-<section id="view-trips" class="view on">
+<section id="view-trips" class="view">
   <div class="card">
     <div class="row">
       <div>
@@ -234,10 +237,10 @@ dialog::backdrop{background:rgba(0,0,0,.6);backdrop-filter:blur(3px)}
       </div>
     </div>
     <div class="sub" style="display:flex;justify-content:space-between;margin-top:10px;font-size:12.5px;color:var(--dim)">
-      <span id="fCount">0 trajet</span><span id="fSum">0,0 km</span>
+      <span id="fCount">—</span><span id="fSum">—</span>
     </div>
   </div>
-  <div id="tripList"><div class="empty">Aucun trajet sur cette période.<br>Appuie sur « Démarrer le trajet » pour commencer.</div></div>
+  <div id="tripList"></div>
 </section>
 
 <!-- ============ STATS ============ -->
@@ -245,7 +248,7 @@ dialog::backdrop{background:rgba(0,0,0,.6);backdrop-filter:blur(3px)}
   <div class="card">
     <h3>Cumuls</h3>
     <div class="grid4">
-      <div class="tile"><div class="lbl">Total</div><div class="val" id="sTotal">0,0<small> km</small></div></div>
+      <div class="tile"><div class="lbl">Total</div><div class="val" id="sTotal">0<small> km</small></div></div>
       <div class="tile"><div class="lbl">Trajets</div><div class="val" id="sTrips">0</div></div>
       <div class="tile"><div class="lbl">Moy./trajet</div><div class="val" id="sAvg">0<small> km</small></div></div>
       <div class="tile"><div class="lbl">Temps total</div><div class="val" id="sTime">0<small> h</small></div></div>
@@ -259,12 +262,12 @@ dialog::backdrop{background:rgba(0,0,0,.6);backdrop-filter:blur(3px)}
       <button data-g="week">Semaines</button>
       <button data-g="month">Mois</button>
     </div>
-    <canvas id="chart" width="662" height="190"></canvas>
+    <canvas id="chart"></canvas>
   </div>
 
   <div class="card">
     <h3>Répartition</h3>
-    <div class="breakdown" id="breakdown"><div class="brow"><span class="bl">Ville</span><span class="bb"><i style="width:0.0%"></i></span><span class="bv">0 km · 0%</span></div><div class="brow"><span class="bl">Route</span><span class="bb"><i style="width:0.0%"></i></span><span class="bv">0 km · 0%</span></div><div class="brow"><span class="bl">Autoroute</span><span class="bb"><i style="width:0.0%"></i></span><span class="bv">0 km · 0%</span></div><div class="brow"><span class="bl">Mixte</span><span class="bb"><i style="width:0.0%"></i></span><span class="bv">0 km · 0%</span></div><div class="brow"><span class="bl">De nuit</span><span class="bb"><i style="width:0.0%"></i></span><span class="bv">0 km · 0%</span></div><div class="brow"><span class="bl">Intempéries</span><span class="bb"><i style="width:0.0%"></i></span><span class="bv">0 km · 0%</span></div></div>
+    <div class="breakdown" id="breakdown"></div>
   </div>
 
   <div class="card">
@@ -274,7 +277,7 @@ dialog::backdrop{background:rgba(0,0,0,.6);backdrop-filter:blur(3px)}
       <button data-g="week">Par semaine</button>
       <button data-g="month">Par mois</button>
     </div>
-    <div style="overflow-x:auto"><table id="detailTable"><tbody><tr><th>Jour</th><th class="n">km</th><th class="n">Trajets</th><th class="n">Durée</th><th class="n">Cumul</th></tr><tr><td colspan="5" style="color:var(--dim)">Aucune donnée</td></tr></tbody></table></div>
+    <div style="overflow-x:auto"><table id="detailTable"></table></div>
   </div>
 
   <div class="card">
@@ -313,8 +316,10 @@ dialog::backdrop{background:rgba(0,0,0,.6);backdrop-filter:blur(3px)}
     <div class="field"><label for="stSpace">Code d'espace partagé</label>
       <input id="stSpace" placeholder="ex : aac-tom" autocapitalize="none"></div>
     <div class="field"><label for="stCfg">Config Firebase (JSON)</label>
-      <textarea id="stCfg" rows="6" spellcheck="false" placeholder="{&quot;apiKey&quot;:&quot;...&quot;,&quot;databaseURL&quot;:&quot;https://xxx.firebaseio.com&quot;,&quot;projectId&quot;:&quot;...&quot;}"></textarea></div>
-    <div class="hint">Colle ici la config de ton projet Firebase (celle de <b>oj-chantier</b> convient).
+      <textarea id="stCfg" rows="6" spellcheck="false" placeholder='{"apiKey":"...","databaseURL":"https://xxx.firebaseio.com","projectId":"..."}'></textarea></div>
+    <div class="hint">Colle ici le bloc <code>firebaseConfig</code> copié depuis la console Firebase
+      (avec ou sans guillemets sur les clés, peu importe). Il doit contenir <code>databaseURL</code> :
+      si ce n'est pas le cas, c'est que la Realtime Database n'a pas encore été créée.
       Le même code d'espace sur deux téléphones = mêmes trajets partagés en temps réel.
       Sans config, tout reste en local sur le téléphone.</div>
     <div class="row">
@@ -327,26 +332,26 @@ dialog::backdrop{background:rgba(0,0,0,.6);backdrop-filter:blur(3px)}
     <h3>Données</h3>
     <div class="field"><label for="fileImport">Restaurer une sauvegarde JSON</label><input type="file" id="fileImport" accept="application/json,.json"></div>
     <button class="btn danger" id="btnWipe">Effacer toutes les données locales</button>
-    <div class="hint" id="storeInfo" style="margin-top:10px">0 trajets · 0.0 Ko en mémoire locale</div>
+    <div class="hint" id="storeInfo" style="margin-top:10px"></div>
   </div>
 </section>
 
 </main>
 
 <nav id="tabbar">
-  <button data-v="drive" class=""><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle><path d="M12 3v6M4.2 16.5l5.2-3M19.8 16.5l-5.2-3"></path></svg>Rouler</button>
-  <button data-v="trips" class="on"><svg viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"></path></svg>Trajets</button>
-  <button data-v="stats" class=""><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"></path></svg>Stats</button>
-  <button data-v="settings" class=""><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2 2 2 0 1 1-4 0 1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 3 15a2 2 0 1 1 0-4 1.7 1.7 0 0 0 1.2-2.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 9 4.6a2 2 0 1 1 4 0 1.7 1.7 0 0 0 2.9 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1A1.7 1.7 0 0 0 21 11a2 2 0 1 1 0 4z"></path></svg>Réglages</button>
+  <button data-v="drive" class="on"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="M12 3v6M4.2 16.5l5.2-3M19.8 16.5l-5.2-3"/></svg>Rouler</button>
+  <button data-v="trips"><svg viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>Trajets</button>
+  <button data-v="stats"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Stats</button>
+  <button data-v="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2 2 2 0 1 1-4 0 1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 3 15a2 2 0 1 1 0-4 1.7 1.7 0 0 0 1.2-2.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 9 4.6a2 2 0 1 1 4 0 1.7 1.7 0 0 0 2.9 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1A1.7 1.7 0 0 0 21 11a2 2 0 1 1 0 4z"/></svg>Réglages</button>
 </nav>
 
 <dialog id="dlg"><form method="dialog" class="sheet" id="tripForm">
   <h2 id="dlgTitle">Trajet</h2>
   <div class="row">
-    <div class="field"><label for="fDate">Date &amp; heure de départ</label><input id="fDate" type="datetime-local" required=""></div>
+    <div class="field"><label for="fDate">Date &amp; heure de départ</label><input id="fDate" type="datetime-local" required></div>
   </div>
   <div class="row">
-    <div class="field"><label for="fKm">Distance (km)</label><input id="fKm" type="number" step="0.1" min="0" required="" inputmode="decimal"></div>
+    <div class="field"><label for="fKm">Distance (km)</label><input id="fKm" type="number" step="0.1" min="0" required inputmode="decimal"></div>
     <div class="field"><label for="fDur">Durée (min)</label><input id="fDur" type="number" step="1" min="0" inputmode="numeric"></div>
   </div>
   <div class="row">
@@ -359,7 +364,7 @@ dialog::backdrop{background:rgba(0,0,0,.6);backdrop-filter:blur(3px)}
   </div>
   <div class="row">
     <div class="field"><label for="fRoadT">Type de route</label><select id="fRoadT">
-      <option value="ville">Ville</option><option value="route" selected="">Route</option>
+      <option value="ville">Ville</option><option value="route" selected>Route</option>
       <option value="autoroute">Autoroute</option><option value="mixte">Mixte</option></select></div>
     <div class="field"><label for="fWeather">Météo</label><select id="fWeather">
       <option value="sec">Sec</option><option value="pluie">Pluie</option>
@@ -369,8 +374,8 @@ dialog::backdrop{background:rgba(0,0,0,.6);backdrop-filter:blur(3px)}
   <div class="check"><input type="checkbox" id="fNight"><label for="fNight">Conduite de nuit</label></div>
   <div class="field"><label for="fNote">Note (optionnel)</label><input id="fNote" placeholder="créneau, rond-points, péage…"></div>
   <div class="actions">
-    <button class="btn" value="cancel" id="fCancel" type="submit" formnovalidate="">Annuler</button>
-    <button class="btn danger hide" value="delete" id="fDelete" type="submit" formnovalidate="">Supprimer</button>
+    <button class="btn" value="cancel" id="fCancel" type="submit" formnovalidate>Annuler</button>
+    <button class="btn danger hide" value="delete" id="fDelete" type="submit" formnovalidate>Supprimer</button>
     <button class="btn primary" value="save" id="fSave" type="submit">Enregistrer</button>
   </div>
   <input type="hidden" id="fId">
@@ -427,8 +432,11 @@ const sync={
   async connect(silent){
     const cfgTxt=(state.set.fbCfg||'').trim(), space=(state.set.space||'').trim();
     if(!cfgTxt||!space){ this.status('','local'); return false; }
-    let cfg; try{ cfg=JSON.parse(cfgTxt); }
-    catch(e){ this.status('err','config ?'); if(!silent) toast('Config Firebase illisible (JSON)'); return false; }
+    const cfg=parseCfg(cfgTxt);
+    if(!cfg){ this.status('err','config ?'); if(!silent) toast('Config Firebase illisible'); return false; }
+    if(!cfg.databaseURL){ this.status('err','databaseURL ?');
+      if(!silent) toast("Il manque databaseURL : crée d'abord la Realtime Database dans la console");
+      return false; }
     try{
       await loadFirebase();
       if(!window.firebase.apps.length) window.firebase.initializeApp(cfg);
@@ -477,6 +485,20 @@ const sync={
       .catch(e=>{ ids.forEach(i=>this.queue.add(i)); this.status('err','erreur'); });
   }
 };
+
+/* Accepte aussi bien un JSON strict que le bloc « const firebaseConfig = {...} »
+   copié tel quel depuis la console Firebase (clés sans guillemets). */
+function parseCfg(txt){
+  if(!txt) return null;
+  let t=String(txt).trim();
+  const anchor=t.search(/firebaseConfig\s*=\s*\{/);   // ignore les lignes « import … » collées avant
+  if(anchor>=0) t=t.slice(t.indexOf('{',anchor));
+  t=t.replace(/^[^{]*\{/, '{').replace(/\}[^}]*$/, '}');
+  try{ const o=JSON.parse(t); if(o&&typeof o==='object') return o; }catch(e){}
+  const o={}; let m, re=/([A-Za-z0-9_]+)\s*:\s*["'`]([^"'`]*)["'`]/g;
+  while((m=re.exec(t))) o[m[1]]=m[2];
+  return Object.keys(o).length? o : null;
+}
 
 function loadScript(src){ return new Promise((res,rej)=>{
   const s=document.createElement('script'); s.src=src; s.async=true;
@@ -924,7 +946,9 @@ $('#btnSaveGps').addEventListener('click',()=>{
 });
 $('#btnConnect').addEventListener('click',async()=>{
   state.set.space=$('#stSpace').value.trim();
-  state.set.fbCfg=$('#stCfg').value.trim();
+  const parsed=parseCfg($('#stCfg').value);
+  state.set.fbCfg=parsed?JSON.stringify(parsed):$('#stCfg').value.trim();
+  if(parsed) $('#stCfg').value=state.set.fbCfg;
   store.persistSet(); sync.disconnect();
   if(await sync.connect(false)) toast('Firebase connecté');
 });
@@ -978,6 +1002,5 @@ function fillSettings(){
   sync.connect(true);
 })();
 </script>
-
-
-</body></html>
+</body>
+</html>
