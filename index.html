@@ -331,6 +331,9 @@ dialog::backdrop{background:rgba(0,0,0,.6);backdrop-filter:blur(3px)}
       (avec ou sans guillemets sur les clés, peu importe). Il doit contenir <code>databaseURL</code> :
       si ce n'est pas le cas, c'est que la Realtime Database n'a pas encore été créée.
       Le même code d'espace sur deux téléphones = mêmes trajets partagés en temps réel.
+      Changer ce code revient à changer de conducteur : les trajets du précédent sont retirés de
+      ce téléphone (ils restent dans Firebase) et son prénom, sa date de début et son objectif
+      sont mémorisés pour le retour.
       Sans config, tout reste en local sur le téléphone.</div>
     <div class="row">
       <button class="btn primary" id="btnConnect">Connecter</button>
@@ -411,7 +414,7 @@ dialog::backdrop{background:rgba(0,0,0,.6);backdrop-filter:blur(3px)}
    ===================================================================== */
 'use strict';
 
-const APP_VERSION='2026-09-01.13';
+const APP_VERSION='2026-09-01.14';
 const LS_TRIPS='aac.trips.v2', LS_SET='aac.settings.v2', LS_LIVE='aac.live.v2';
 const $=(s)=>document.querySelector(s), $$=(s)=>Array.from(document.querySelectorAll(s));
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
@@ -420,7 +423,7 @@ const now=()=>Date.now();
 /* ---------------------------------------------------------------- state */
 const state={
   trips:{},                    // id -> trip (tombstones inclus : {deleted:true})
-  set:{name:'',startDate:'',goal:3000,minAcc:30,autoNight:true,autoCity:true,space:'',fbCfg:''},
+  set:{name:'',startDate:'',goal:3000,minAcc:30,autoNight:true,autoCity:true,space:'',fbCfg:'',profiles:{}},
   live:null,                   // session GPS en cours
   chartGroup:'day', tableGroup:'day'
 };
@@ -1006,12 +1009,33 @@ $('#btnSaveGps').addEventListener('click',()=>{
   state.set.autoCity=$('#stAutoCity').checked;
   store.persistSet(); toast('Réglages GPS enregistrés');
 });
+/* Changer de code d'espace = changer de conducteur : on retire d'abord les trajets
+   du précédent de CE téléphone (ils restent dans Firebase), sinon la fusion les
+   recopierait dans l'espace du nouveau conducteur. Nom / date / objectif sont
+   mémorisés par conducteur et restaurés au retour. */
+const profiles={
+  save(space){ if(!space) return;
+    state.set.profiles=state.set.profiles||{};
+    state.set.profiles[space]={name:state.set.name,startDate:state.set.startDate,goal:state.set.goal}; },
+  load(space){ const pr=(state.set.profiles||{})[space];
+    state.set.name=pr?pr.name:''; state.set.startDate=pr?pr.startDate:''; state.set.goal=(pr&&pr.goal)||3000; }
+};
+
 $('#btnConnect').addEventListener('click',async()=>{
-  state.set.space=$('#stSpace').value.trim();
+  const newSpace=$('#stSpace').value.trim(), prev=(state.set.space||'').trim();
   const parsed=parseCfg($('#stCfg').value);
+  if(prev && newSpace && prev!==newSpace){
+    if(!confirm('Changer de conducteur ?\n\nLes trajets de « '+prev+' » seront retirés de ce téléphone '+
+                '(ils restent dans Firebase) et ceux de « '+newSpace+' » seront téléchargés.')) return;
+    sync.disconnect();
+    profiles.save(prev);
+    state.trips={}; store.persistTrips(); sync.queue.clear();
+    profiles.load(newSpace);
+  }
+  state.set.space=newSpace;
   state.set.fbCfg=parsed?JSON.stringify(parsed):$('#stCfg').value.trim();
   if(parsed) $('#stCfg').value=state.set.fbCfg;
-  store.persistSet(); sync.disconnect();
+  store.persistSet(); sync.disconnect(); fillSettings(); ui.renderAll();
   if(await sync.connect(false)) toast('Firebase connecté');
 });
 $('#btnDisconnect').addEventListener('click',()=>{ sync.disconnect(); toast('Sync désactivée'); });
