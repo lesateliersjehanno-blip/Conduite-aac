@@ -312,6 +312,10 @@ dialog::backdrop{background:rgba(0,0,0,.6);backdrop-filter:blur(3px)}
     <div class="hint">Les points GPS moins précis que cette valeur sont ignorés. 30 m est un bon compromis
       (baisse à 20 m en ville dégagée, monte à 50 m si le signal est faible).</div>
     <div class="check"><input type="checkbox" id="stAutoNight"><label for="stAutoNight">Cocher « nuit » automatiquement (21h–7h)</label></div>
+    <div class="check"><input type="checkbox" id="stAutoCity"><label for="stAutoCity">Remplir les villes de départ et d'arrivée automatiquement</label></div>
+    <div class="hint">Les coordonnées de début et de fin de trajet sont envoyées à la Base Adresse
+      Nationale (service public français) pour retrouver le nom de la commune. Rien d'autre n'est transmis,
+      et aucun tracé n'est enregistré.</div>
     <button class="btn primary" id="btnSaveGps">Enregistrer</button>
   </div>
 
@@ -405,7 +409,7 @@ dialog::backdrop{background:rgba(0,0,0,.6);backdrop-filter:blur(3px)}
    ===================================================================== */
 'use strict';
 
-const APP_VERSION='2026-09-01.6';
+const APP_VERSION='2026-09-01.7';
 const LS_TRIPS='aac.trips.v2', LS_SET='aac.settings.v2', LS_LIVE='aac.live.v2';
 const $=(s)=>document.querySelector(s), $$=(s)=>Array.from(document.querySelectorAll(s));
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
@@ -414,7 +418,7 @@ const now=()=>Date.now();
 /* ---------------------------------------------------------------- state */
 const state={
   trips:{},                    // id -> trip (tombstones inclus : {deleted:true})
-  set:{name:'',startDate:'',goal:3000,minAcc:30,autoNight:true,space:'',fbCfg:''},
+  set:{name:'',startDate:'',goal:3000,minAcc:30,autoNight:true,autoCity:true,space:'',fbCfg:''},
   live:null,                   // session GPS en cours
   chartGroup:'day', tableGroup:'day'
 };
@@ -556,7 +560,8 @@ const geo={
     if(!navigator.geolocation){ toast('Géolocalisation indisponible sur ce navigateur'); return; }
     if(!window.isSecureContext) toast('Ouvre la page en HTTPS : le GPS est bloqué sinon');
     state.live={startTs:now(), km:0, last:null, lastFix:0, paused:false,
-                pausedMs:0, pauseAt:0, speed:0, acc:null, pts:0, maxSpeed:0};
+                pausedMs:0, pauseAt:0, speed:0, acc:null, pts:0, maxSpeed:0,
+                startPt:null, endPt:null};
     store.persistLive(); this.attach(); ui.driveMode();
   },
 
@@ -599,6 +604,8 @@ const geo={
         L.last=pt; L.pts++;
       } else if(v<0.6){ L.speed=0; L.last=pt; }
     } else { L.last=pt; L.pts++; }
+    if(!L.startPt) L.startPt={lat:pt.lat, lon:pt.lon};
+    L.endPt={lat:pt.lat, lon:pt.lon};
     L.lastFix=now(); store.persistLive(); ui.gpsQuality(acc,false); ui.liveTick();
   },
 
@@ -614,7 +621,8 @@ const geo={
     clearInterval(this.tick); this.tick=null; this.unlock();
     document.removeEventListener('visibilitychange',this.onVis);
     const res={startTs:L.startTs, endTs:now(), km:Math.round(L.km*100)/100,
-               durS:Math.round((now()-L.startTs-L.pausedMs)/1000), maxSpeed:Math.round(L.maxSpeed)};
+               durS:Math.round((now()-L.startTs-L.pausedMs)/1000), maxSpeed:Math.round(L.maxSpeed),
+               startPt:L.startPt, endPt:L.endPt};
     state.live=null; store.persistLive(); return res;
   },
 
@@ -622,6 +630,39 @@ const geo={
     const p=L.pausedMs+(L.paused?now()-L.pauseAt:0);
     return Math.max(0,(now()-L.startTs-p)/1000); }
 };
+
+/* ------------------------------------------------- commune depuis coordonnées
+   Base Adresse Nationale (data.gouv.fr) en premier — rapide et sans quota pour
+   la France ; Nominatim (OpenStreetMap) en secours hors de France.
+   Échec silencieux : hors ligne, les champs restent simplement vides. */
+async function cityOf(pt){
+  if(!pt||typeof pt.lat!=='number') return '';
+  const lat=pt.lat.toFixed(5), lon=pt.lon.toFixed(5);
+  try{
+    const r=await fetch('https://api-adresse.data.gouv.fr/reverse/?limit=1&lon='+lon+'&lat='+lat);
+    if(r.ok){ const j=await r.json();
+      const pr=j&&j.features&&j.features[0]&&j.features[0].properties;
+      if(pr&&(pr.city||pr.municipality)) return pr.city||pr.municipality; }
+  }catch(e){}
+  try{
+    const r=await fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=10'+
+                        '&accept-language=fr&lat='+lat+'&lon='+lon);
+    if(r.ok){ const j=await r.json(), a=(j&&j.address)||{};
+      return a.city||a.town||a.village||a.municipality||a.county||''; }
+  }catch(e){}
+  return '';
+}
+
+/* Remplit Départ/Arrivée sans écraser une saisie manuelle déjà faite. */
+async function fillCities(startPt,endPt){
+  const f=$('#fFrom'), t=$('#fTo');
+  if(!f.value) f.placeholder='recherche…';
+  if(!t.value) t.placeholder='recherche…';
+  const [a,b]=await Promise.all([cityOf(startPt),cityOf(endPt)]);
+  if(!f.value&&a) f.value=a;
+  if(!t.value&&b) t.value=b;
+  f.placeholder='Vannes'; t.placeholder='Damgan';
+}
 
 /* ------------------------------------------------------------- dates */
 const pad=n=>String(n).padStart(2,'0');
@@ -938,6 +979,7 @@ $('#btnStop').addEventListener('click',()=>{
   if(!r) return;
   if(r.km<0.05){ toast('Trajet trop court, non enregistré'); ui.renderAll(); return; }
   openTrip(null,{startTs:r.startTs,km:r.km,durS:r.durS,source:'gps',maxSpeed:r.maxSpeed});
+  if(state.set.autoCity!==false) fillCities(r.startPt,r.endPt);
 });
 $$('#btnManual, #btnManual2').forEach(b=>b.addEventListener('click',()=>openTrip(null,{startTs:now()})));
 $('#fPeriod').addEventListener('change',()=>ui.trips());
@@ -959,6 +1001,7 @@ $('#btnSaveSettings').addEventListener('click',()=>{
 $('#btnSaveGps').addEventListener('click',()=>{
   state.set.minAcc=Math.min(200,Math.max(5,+$('#stAcc').value||30));
   state.set.autoNight=$('#stAutoNight').checked;
+  state.set.autoCity=$('#stAutoCity').checked;
   store.persistSet(); toast('Réglages GPS enregistrés');
 });
 $('#btnConnect').addEventListener('click',async()=>{
@@ -997,6 +1040,7 @@ function fillSettings(){
   $('#stName').value=state.set.name||''; $('#stStart').value=state.set.startDate||'';
   $('#stGoal').value=state.set.goal||3000; $('#stAcc').value=state.set.minAcc||30;
   $('#stAutoNight').checked=state.set.autoNight!==false;
+  $('#stAutoCity').checked=state.set.autoCity!==false;
   $('#stSpace').value=state.set.space||''; $('#stCfg').value=state.set.fbCfg||'';
   $('#appVer').textContent=APP_VERSION;
   const bytes=(localStorage.getItem(LS_TRIPS)||'').length;
