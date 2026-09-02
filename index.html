@@ -123,7 +123,7 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 label{display:block;font-size:12px;color:var(--dim);margin:0 0 5px;font-weight:600}
 input,select,textarea{width:100%;background:var(--card2);border:1px solid var(--line);border-radius:10px;
   padding:11px 12px;outline:none;color:var(--txt);-webkit-text-fill-color:var(--txt)}
-input::placeholder,textarea::placeholder{color:#69717f;opacity:1}
+input::placeholder,textarea::placeholder{color:#3f4654;-webkit-text-fill-color:#3f4654;opacity:1}
 select option{background:var(--card2);color:var(--txt)}
 input:focus,select:focus,textarea:focus{border-color:var(--accent2)}
 .field{margin-bottom:11px}
@@ -322,9 +322,9 @@ dialog::backdrop{background:rgba(0,0,0,.6);backdrop-filter:blur(3px)}
   <div class="card">
     <h3>Synchronisation Firebase</h3>
     <div class="field"><label for="stSpace">Code d'espace partagé</label>
-      <input id="stSpace" placeholder="ex : aac-tom" autocapitalize="none"></div>
+      <input id="stSpace" placeholder="Code d'espace partagé" autocapitalize="none"></div>
     <div class="field"><label for="stCfg">Config Firebase (JSON)</label>
-      <textarea id="stCfg" rows="6" spellcheck="false" placeholder='{"apiKey":"...","databaseURL":"https://xxx.firebaseio.com","projectId":"..."}'></textarea></div>
+      <textarea id="stCfg" rows="6" spellcheck="false" placeholder="Config Firebase (JSON)"></textarea></div>
     <div class="hint">Colle ici le bloc <code>firebaseConfig</code> copié depuis la console Firebase
       (avec ou sans guillemets sur les clés, peu importe). Il doit contenir <code>databaseURL</code> :
       si ce n'est pas le cas, c'est que la Realtime Database n'a pas encore été créée.
@@ -368,7 +368,7 @@ dialog::backdrop{background:rgba(0,0,0,.6);backdrop-filter:blur(3px)}
   </div>
   <div class="row">
     <div class="field"><label for="fKm">Distance (km)</label><input id="fKm" type="text" inputmode="decimal"
-      pattern="[0-9]+([.,][0-9]{1,2})?" required placeholder="12,4"></div>
+      pattern="[0-9]+([.,][0-9]{1,2})?" required></div>
     <div class="field"><label for="fDur">Durée (min)</label><input id="fDur" type="number" step="1" min="0" inputmode="numeric"></div>
   </div>
   <div class="row">
@@ -409,7 +409,7 @@ dialog::backdrop{background:rgba(0,0,0,.6);backdrop-filter:blur(3px)}
    ===================================================================== */
 'use strict';
 
-const APP_VERSION='2026-09-01.8';
+const APP_VERSION='2026-09-01.10';
 const LS_TRIPS='aac.trips.v2', LS_SET='aac.settings.v2', LS_LIVE='aac.live.v2';
 const $=(s)=>document.querySelector(s), $$=(s)=>Array.from(document.querySelectorAll(s));
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
