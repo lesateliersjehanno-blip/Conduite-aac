@@ -65,8 +65,11 @@ main{padding:14px 14px 24px;max-width:720px;margin:0 auto}
 .live{text-align:center;padding:6px 0 4px}
 .live .km{font-size:60px;font-weight:800;letter-spacing:-2px;line-height:1}
 .live .km small{font-size:20px;font-weight:600;color:var(--dim);letter-spacing:0}
-.live .meta{display:flex;justify-content:center;gap:18px;color:var(--dim);font-size:13px;margin-top:10px}
-.live .meta b{color:var(--txt);font-weight:600}
+.livegrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px}
+.lt{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px 4px;text-align:center}
+.lt .lbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--dim)}
+.lt .v{font-size:27px;font-weight:700;margin-top:3px;letter-spacing:-1px;font-variant-numeric:tabular-nums}
+.lt .v small{font-size:11px;color:var(--dim);font-weight:600;letter-spacing:0}
 .gpsq{margin-top:10px;font-size:12px;color:var(--dim);text-align:center}
 .gpsq b{color:var(--accent)}
 .gpsq.bad b{color:var(--warn)}
@@ -183,12 +186,12 @@ dialog::backdrop{background:rgba(0,0,0,.6);backdrop-filter:blur(3px)}
 
   <div class="card hide" id="liveBox">
     <div class="live">
-      <div class="km"><span id="lvKm">0.00</span><small> km</small></div>
-      <div class="meta">
-        <span>⏱ <b id="lvTime">00:00</b></span>
-        <span>➜ <b id="lvSpeed">0</b> km/h</span>
-        <span>Ø <b id="lvAvg">0</b> km/h</span>
-      </div>
+      <div class="km"><span id="lvKm">0,00</span><small> km</small></div>
+    </div>
+    <div class="livegrid">
+      <div class="lt"><div class="lbl">Durée</div><div class="v" id="lvTime">0:00</div></div>
+      <div class="lt"><div class="lbl">Vitesse</div><div class="v" id="lvSpeed">0<small> km/h</small></div></div>
+      <div class="lt"><div class="lbl">Moyenne</div><div class="v" id="lvAvg">0<small> km/h</small></div></div>
     </div>
     <div class="gpsq" id="gpsLive">Acquisition du signal GPS…</div>
     <div style="height:14px"></div>
@@ -354,17 +357,18 @@ dialog::backdrop{background:rgba(0,0,0,.6);backdrop-filter:blur(3px)}
 </nav>
 
 <dialog id="dlg"><form method="dialog" class="sheet" id="tripForm">
-  <h2 id="dlgTitle">Trajet</h2>
+  <h2 id="dlgTitle" tabindex="-1" autofocus>Trajet</h2>
   <div class="row">
     <div class="field"><label for="fDate">Date &amp; heure de départ</label><input id="fDate" type="datetime-local" required></div>
   </div>
   <div class="row">
-    <div class="field"><label for="fKm">Distance (km)</label><input id="fKm" type="number" step="0.1" min="0" required inputmode="decimal"></div>
+    <div class="field"><label for="fKm">Distance (km)</label><input id="fKm" type="text" inputmode="decimal"
+      pattern="[0-9]+([.,][0-9]{1,2})?" required placeholder="12,4"></div>
     <div class="field"><label for="fDur">Durée (min)</label><input id="fDur" type="number" step="1" min="0" inputmode="numeric"></div>
   </div>
   <div class="row">
-    <div class="field"><label for="fOdo1">Compteur départ</label><input id="fOdo1" type="number" step="1" min="0" inputmode="numeric" placeholder="optionnel"></div>
-    <div class="field"><label for="fOdo2">Compteur arrivée</label><input id="fOdo2" type="number" step="1" min="0" inputmode="numeric" placeholder="optionnel"></div>
+    <div class="field"><label for="fOdo1">Compteur départ</label><input id="fOdo1" type="text" inputmode="numeric" placeholder="optionnel"></div>
+    <div class="field"><label for="fOdo2">Compteur arrivée</label><input id="fOdo2" type="text" inputmode="numeric" placeholder="optionnel"></div>
   </div>
   <div class="row">
     <div class="field"><label for="fFrom">Départ</label><input id="fFrom" placeholder="Vannes"></div>
@@ -400,7 +404,7 @@ dialog::backdrop{background:rgba(0,0,0,.6);backdrop-filter:blur(3px)}
    ===================================================================== */
 'use strict';
 
-const APP_VERSION='2026-09-01.4';
+const APP_VERSION='2026-09-01.5';
 const LS_TRIPS='aac.trips.v2', LS_SET='aac.settings.v2', LS_LIVE='aac.live.v2';
 const $=(s)=>document.querySelector(s), $$=(s)=>Array.from(document.querySelectorAll(s));
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
@@ -639,6 +643,9 @@ function fmtDur(s){ s=Math.max(0,Math.round(s)); const h=Math.floor(s/3600), m=M
   return h? h+'h'+pad(m) : m+' min'; }
 function fmtClock(s){ s=Math.max(0,Math.round(s)); const h=Math.floor(s/3600), m=Math.floor(s%3600/60), x=s%60;
   return (h?h+':':'')+pad(m)+':'+pad(x); }
+/* Lecture tolérante : accepte « 12,4 » comme « 12.4 », espaces compris. */
+function num(v){ const n=parseFloat(String(v==null?'':v).replace(/\s/g,'').replace(',','.')); return isFinite(n)?n:0; }
+function toInput(v){ return v==null||v===''?'':String(v).replace('.',','); }
 function toLocalInput(ts){ const d=new Date(ts);
   return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes()); }
 
@@ -817,19 +824,19 @@ const ui={
   liveTick(){
     const L=state.live; if(!L) return;
     const s=geo.elapsed();
-    $('#lvKm').textContent=L.km.toFixed(2);
+    $('#lvKm').textContent=L.km.toFixed(2).replace('.',',');
     $('#lvTime').textContent=fmtClock(s);
-    $('#lvSpeed').textContent=Math.round(L.paused?0:(L.speed||0));
-    $('#lvAvg').textContent=s>30?Math.round(L.km/(s/3600)):0;
+    $('#lvSpeed').innerHTML=Math.round(L.paused?0:(L.speed||0))+'<small> km/h</small>';
+    $('#lvAvg').innerHTML=(s>30?Math.round(L.km/(s/3600)):0)+'<small> km/h</small>';
     if(L.paused) $('#gpsLive').innerHTML='<b style="color:var(--warn)">En pause</b>';
     else if(L.lastFix && now()-L.lastFix>15000) $('#gpsLive').innerHTML='<b style="color:var(--warn)">Signal perdu…</b>';
   },
 
+  /* Volontairement silencieux quand tout va bien : seules les anomalies
+     (pause, perte de signal, refus d'autorisation) s'affichent. */
   gpsQuality(acc,rejected){
     const el=$('#gpsLive'); if(!el||!state.live||state.live.paused) return;
-    el.className='gpsq'+(rejected?' bad':'');
-    el.innerHTML='Précision GPS <b>±'+Math.round(acc)+' m</b>'+
-      (rejected?' — point ignoré (seuil '+state.set.minAcc+' m)':' · '+state.live.pts+' points');
+    if(!rejected){ el.className='gpsq'; el.textContent=''; }
   }
 };
 
@@ -854,7 +861,7 @@ function openTrip(trip,prefill){
   const ts=src.startTs||now();
   $('#fId').value=t?t.id:'';
   $('#fDate').value=toLocalInput(ts);
-  $('#fKm').value=src.km!=null?(Math.round(src.km*100)/100):'';
+  $('#fKm').value=src.km!=null?toInput(Math.round(src.km*100)/100):'';
   $('#fDur').value=src.durS?Math.round(src.durS/60):'';
   $('#fOdo1').value=src.odo1||''; $('#fOdo2').value=src.odo2||'';
   $('#fFrom').value=src.from||''; $('#fTo').value=src.to||'';
@@ -875,11 +882,11 @@ dlg.addEventListener('close',()=>{
   const id=$('#fId').value||uid();
   const old=state.trips[id]||{};
   const startTs=new Date($('#fDate').value).getTime()||now();
-  const durS=Math.round((+$('#fDur').value||0)*60);
+  const durS=Math.round(num($('#fDur').value)*60);
   const t={ id, deleted:false,
     startTs, endTs:startTs+durS*1000, durS,
-    km:Math.max(0,Math.round((+$('#fKm').value||0)*100)/100),
-    odo1:+$('#fOdo1').value||null, odo2:+$('#fOdo2').value||null,
+    km:Math.max(0,Math.round(num($('#fKm').value)*100)/100),
+    odo1:num($('#fOdo1').value)||null, odo2:num($('#fOdo2').value)||null,
     from:$('#fFrom').value.trim(), to:$('#fTo').value.trim(),
     road:$('#fRoadT').value, weather:$('#fWeather').value,
     night:$('#fNight').checked, note:$('#fNote').value.trim(),
@@ -889,8 +896,8 @@ dlg.addEventListener('close',()=>{
 });
 /* compteur départ/arrivée -> distance automatique */
 ['#fOdo1','#fOdo2'].forEach(s=>$(s).addEventListener('input',()=>{
-  const a=+$('#fOdo1').value, b=+$('#fOdo2').value;
-  if(a>0&&b>a) $('#fKm').value=Math.round((b-a)*100)/100;
+  const a=num($('#fOdo1').value), b=num($('#fOdo2').value);
+  if(a>0&&b>a) $('#fKm').value=toInput(Math.round((b-a)*100)/100);
 }));
 
 /* ------------------------------------------------------------- export */
